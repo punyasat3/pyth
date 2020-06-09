@@ -79,7 +79,7 @@ for region in regions:
                                 # Deregistering Instances from ELB
                                 for elb in new_list:
                                     elb_response = elb_client.deregister_instances_from_load_balancer(LoadBalancerName=elb,Instances=[{'InstanceId': z['InstanceId']}])
-if len(list(dict.fromkeys(deregistered_instances)))==0 :
+if  len(deregistered_instances)==0 :
     print("Nothing to Deregister")
 else:
     print(" removed from ELB")
