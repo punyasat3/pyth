@@ -14,7 +14,7 @@ default_region="ap-south-1"
 sts = boto3.client('sts',aws_access_key_id=access_key,aws_secret_access_key=secret_access_key,region_name=default_region)
 try:
     sts.get_caller_identity()
-    logging.info("Credentials are valid.")
+    logging.warning("Credentials are valid.")
 except:
     logging.info("Credentials invalid. \nPlease Provide Valid Credentials in config file.\nThanks")
     sys.exit(0)
@@ -24,8 +24,8 @@ client = boto3.client('ec2',aws_access_key_id=access_key,aws_secret_access_key=s
 regions_list = [region['RegionName'] for region in client.describe_regions()['Regions']]
 for region in regions:
     if region not in regions_list:
-        logging.info(region,"No Such Region Found.\nPlease Enter Valid Region in config file.\nThanks")
-        logging.debug("please select mention proper region in provided by AWS")
+        logging.info(str(region)+" No Such Region Found.\nPlease Enter Valid Region in config file.\nThanks")
+        logging.debug("please check aws regions here "+str(region_list))
         sys.exit(1)
 
 #Checks
