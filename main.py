@@ -63,25 +63,41 @@ logging.info("Trying to Deregister Instances...")
 
 # Deregister process
 instance_list=[]
+elb_instancelist=[]
 def deregister(region):
     elb_client = boto3.client('elb',aws_access_key_id=access_key,aws_secret_access_key=secret_access_key,region_name=region)
     elb_response=elb_client.describe_load_balancers()
     a=elb_response['LoadBalancerDescriptions']
+
     def derelb(z):
+        # appending all matching instances in specific elb
+        count=0
+        elb_instancelist=[]
         for t in z['Instances']:
             if t['InstanceId'] in instance_ids_with_matching_tags:
-              if t['InstanceId'] not in running_list:
+              if t['InstanceId']  in running_list:
 
+                elb_instancelist.append(t['InstanceId'])
+
+
+
+        #main deregestration process
+        count=len(elb_instancelist)
+        for t in z['Instances']:
+            if t['InstanceId'] in instance_ids_with_matching_tags:
+              if t['InstanceId']  in running_list:
                 instance_list.append(t['InstanceId'])
-                elb=str(z['LoadBalancerName'])
+                if count>1:
 
-                elb_response1 = elb_client.deregister_instances_from_load_balancer(LoadBalancerName=elb,Instances=[{'InstanceId': t['InstanceId']}])
-                logging.info(" Iam Sleeping for 3 sec")
-                #sleep(3)
-                if t['InstanceId'] not  in elb_response1:
-                    logging.warning(str(t['InstanceId'])+" is Deregistered from ELB named "+str(elb)+" in region "+str(region))
-                else :
-                    logging.warning(str(t['InstanceId'])+" is Not able to  Deregistered from ELB named "+str(elb)+" in region "+str(region)+"wait for some time and try again")
+                  elb=str(z['LoadBalancerName'])
+
+                  elb_response1 = elb_client.deregister_instances_from_load_balancer(LoadBalancerName=elb,Instances=[{'InstanceId': t['InstanceId']}])
+                  #sleep(3)
+                  if t['InstanceId'] not  in elb_response1:
+                      logging.warning(str(t['InstanceId'])+" is Deregistered from ELB named "+str(elb)+" in region "+str(region))
+                      count=count-1
+                  else :
+                      logging.warning(str(t['InstanceId'])+" is Not able to  Deregistered from ELB named "+str(elb)+" in region "+str(region)+"wait for some time and try again")
 
 
     for z in a :
