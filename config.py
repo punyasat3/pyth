@@ -1,4 +1,11 @@
-access_key="AKIARMDSSSFU3RWKK5ML"
-secret_access_key="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"
-regions=["us-east-1","ap-south-1"]
-ec2_tag_names=[{'Name':'tag:Name', 'Values':['Jenkins']},{'Name':'tag:Env', 'Values':['Dev']}]
+access_key="onsjdj"
+secret_access_key="/Qz3TCL3bgZdxCm45Dn"
+regions=["ap-south-1","us-east-1"]
+ec2_tag_names=[{'Name':'tag:deregister', 'Values':['true']},{'Name':'tag:environment', 'Values':['production']}]
+Level=20
+default_region="ap-south-1"
+#CRITICA 50
+#ERROR  40
+#WARNIN 30
+#INFO   20
+#DEBUG  10
