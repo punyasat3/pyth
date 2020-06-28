@@ -33,12 +33,12 @@ if len(ec2_tag_names)==0:
 #Region Validation & filtering  matching instances running instances
 client = boto3.client('ec2',aws_access_key_id=access_key,aws_secret_access_key=secret_access_key,region_name=default_region)
 regions_list = [region['RegionName'] for region in client.describe_regions()['Regions']]
-running_list=[]
 instance_ids_with_matching_tags=[]
 instance_list=[]
-running_list=[]
+running_list2=[]
+
 for region in regions:
-    running_list2=[]
+    running_list1=[]
     if region not in regions_list:
         logging.info(" script_name: "+str(sys.argv[0])+" Account_id: "+str(account_id)+" region name :" +str(region)+"No Such Region Found.\nPlease Enter Valid Region in config file.\nThanks")
         logging.debug(" script_name: "+str(sys.argv[0])+" Account_id: "+str(account_id)+" region name :" +str(region)+"please select mention proper region in provided by AWS")
@@ -52,18 +52,18 @@ for region in regions:
     for Instances in response1['Reservations']:
         for Initid in Instances['Instances']:
           if Initid['InstanceId'] in instance_ids_with_matching_tags:
-             running_list2.append(Initid['InstanceId'])
+             running_list1.append(Initid['InstanceId'])
 
     client2 = boto3.client('ec2',aws_access_key_id=access_key,aws_secret_access_key=secret_access_key,region_name=region)
-    #print(client2)
-    for instance in running_list2:
+    #checking whether same role tag having two instances
+    for instance in running_list1:
       count=0
       response2 = client2.describe_instances(InstanceIds=[instance])
       for Instances1 in response2['Reservations']:
         for tag in Instances1['Instances']:
           for key1 in tag['Tags']:
             if key1['Key']=="role":
-              for i in running_list2:
+              for i in running_list1:
                 response3 = client2.describe_instances(InstanceIds=[i])
                 for instances2 in response3['Reservations']:
                   for tag in instances2['Instances']:
@@ -71,9 +71,10 @@ for region in regions:
                       if key2['Key']=="role" and  key1['Value']==key2['Value']:
                          count=count+1
 
-
+      #if role tag having only single instance it will append and deregister
       if count==1:
-         running_list.append(instance)
+         running_list2.append(instance)
+      #if more than one instance having role tag its won't deregister and  it will push log with instance id
       if count>1:
          logging.info(" script_name: "+str(sys.argv[0])+" Account_id: "+str(account_id)+" region name :" +str(region)+"More the 1 instance is tagged for deregistration for the same role "+str(instance))
 
@@ -93,25 +94,22 @@ def deregisterforregion(region):
     #print(regionallelbs)
 
     def deregisterforelb(loadbalancer):
-        count=0
-        instancelist=[]
-
+        #in every elb taking instance id and if id matches with running_list its simply deregister
         for initid in loadbalancer['Instances']:
-            if initid['InstanceId']  in running_list:
+            if initid['InstanceId']  in running_list2:
                   instance_list.append(initid['InstanceId'])
                   elb=str(loadbalancer['LoadBalancerName'])
                   elb_response1 = elb_client.deregister_instances_from_load_balancer(LoadBalancerName=elb,Instances=[{'InstanceId': initid['InstanceId']}])
                   #sleep(3)
                   if initid['InstanceId'] not  in elb_response1:
                       logging.warning(" script_name: "+str(sys.argv[0])+" Account_id: "+str(account_id)+" region name :" +str(region)+"instance "+str(initid['InstanceId'])+" is Deregistered from ELB named "+str(elb)+" in region "+str(region))
-                      count=count-1
                   else :
                        logging.warning(" script_name: "+str(sys.argv[0])+" Account_id: "+str(account_id)+" region name :" +str(region)+"instance "+str(initid['InstanceId'])+" is not able to  Deregistered from ELB named "+str(elb)+" in region "+str(region))
 
-
+    #from here only multiple threads will create and calls deregisaterforelb function
     for loadbalancer in regionallelbs:
         p = threading.Thread(target = deregisterforelb, args=(loadbalancer,)).start()
-
+#from here only multiple threads will create and calls deregisaterforregion function
 for region in regions:
     t = threading.Thread(target = deregisterforregion, args=(region,)).start()
 
