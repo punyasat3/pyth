@@ -11,6 +11,7 @@ from config import *
 logging.basicConfig(filename='elb.log', level=int(Level),
                     format='%(asctime)s:%(levelname)s:%(message)s',filemode='w')
 
+
 #Credentials Validation
 sts = boto3.client('sts',aws_access_key_id=access_key,aws_secret_access_key=secret_access_key,region_name=default_region)
 try:
@@ -29,12 +30,15 @@ if len(ec2_tag_names)==0:
     logging.info(" script_name: "+str(sys.argv[0])+" Account_id: "+str(account_id)+" region name : --- instance: --- Please Enter Atleast One EC2 Tag name in Config file.")
     sys.exit(3)
 
-#Region Validation & matching instances  & running instances
+#Region Validation & filtering  matching instances running instances
 client = boto3.client('ec2',aws_access_key_id=access_key,aws_secret_access_key=secret_access_key,region_name=default_region)
 regions_list = [region['RegionName'] for region in client.describe_regions()['Regions']]
 running_list=[]
 instance_ids_with_matching_tags=[]
+instance_list=[]
+running_list=[]
 for region in regions:
+    running_list2=[]
     if region not in regions_list:
         logging.info(" script_name: "+str(sys.argv[0])+" Account_id: "+str(account_id)+" region name :" +str(region)+"No Such Region Found.\nPlease Enter Valid Region in config file.\nThanks")
         logging.debug(" script_name: "+str(sys.argv[0])+" Account_id: "+str(account_id)+" region name :" +str(region)+"please select mention proper region in provided by AWS")
@@ -48,34 +52,53 @@ for region in regions:
     for Instances in response1['Reservations']:
         for Initid in Instances['Instances']:
           if Initid['InstanceId'] in instance_ids_with_matching_tags:
-             running_list.append(Initid['InstanceId'])
+             running_list2.append(Initid['InstanceId'])
 
-if len(running_list)==0:
-    logging.info(" script_name: "+str(sys.argv[0])+" Account_id: "+str(account_id)+" region name : --- instance: --- No matching instances found in this tagging creteria. \ntag name is false.\nThanks")
-    sys.exit(4)
+    client2 = boto3.client('ec2',aws_access_key_id=access_key,aws_secret_access_key=secret_access_key,region_name=region)
+    #print(client2)
+    for instance in running_list2:
+      count=0
+      response2 = client2.describe_instances(InstanceIds=[instance])
+      for Instances1 in response2['Reservations']:
+        for tag in Instances1['Instances']:
+          for key1 in tag['Tags']:
+            if key1['Key']=="role":
+              for i in running_list2:
+                response3 = client2.describe_instances(InstanceIds=[i])
+                for instances2 in response3['Reservations']:
+                  for tag in instances2['Instances']:
+                    for key2 in tag['Tags']:
+                      if key2['Key']=="role" and  key1['Value']==key2['Value']:
+                         count=count+1
+
+
+      if count==1:
+         running_list.append(instance)
+      if count>1:
+         logging.info(" script_name: "+str(sys.argv[0])+" Account_id: "+str(account_id)+" region name :" +str(region)+"More the 1 instance is tagged for deregistration for the same role "+str(instance))
+
+
+
+
 
 
 
 logging.info("script name: "+str(sys.argv[0])+" Account_id: "+str(account_id)+" region name : --- instance: --- Trying to Deregister Instances...")
 
 # Deregister process
-instance_list=[]
 def deregisterforregion(region):
     elb_client = boto3.client('elb',aws_access_key_id=access_key,aws_secret_access_key=secret_access_key,region_name=region)
     elb_response=elb_client.describe_load_balancers()
     regionallelbs=elb_response['LoadBalancerDescriptions']
+    #print(regionallelbs)
 
     def deregisterforelb(loadbalancer):
         count=0
-        elb_instancelist=[]
+        instancelist=[]
+
         for initid in loadbalancer['Instances']:
             if initid['InstanceId']  in running_list:
-               elb_instancelist.append(initid['InstanceId'])
-               instance_list.append(initid['InstanceId'])
-       #elblist for appending all matching instances in specific elb
-       #instance list for appending all instances in all elbs
-               count=len(elb_instancelist)
-               if count>1:
+                  instance_list.append(initid['InstanceId'])
                   elb=str(loadbalancer['LoadBalancerName'])
                   elb_response1 = elb_client.deregister_instances_from_load_balancer(LoadBalancerName=elb,Instances=[{'InstanceId': initid['InstanceId']}])
                   #sleep(3)
@@ -89,10 +112,9 @@ def deregisterforregion(region):
     for loadbalancer in regionallelbs:
         p = threading.Thread(target = deregisterforelb, args=(loadbalancer,)).start()
 
-
 for region in regions:
     t = threading.Thread(target = deregisterforregion, args=(region,)).start()
 
 # if tag instances not in elb or already deregister
-if len(instance_list)==0 :
-    logging.info(" script_name: "+str(sys.argv[0])+" Account_id: "+str(account_id)+" Nothing to Deregister.\nThanks.")
+if len(instance_list)==0:
+  logging.info(" script_name: "+str(sys.argv[0])+" Account_id: "+str(account_id)+" Nothing to Deregister.\nThanks.")
