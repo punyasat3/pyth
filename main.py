@@ -56,15 +56,15 @@ for region in regions:
 
     client2 = boto3.client('ec2',aws_access_key_id=access_key,aws_secret_access_key=secret_access_key,region_name=region)
     #checking whether same role tag having two instances
-    for instance in running_list1:
+    for i1 in running_list1:
       count=0
-      response2 = client2.describe_instances(InstanceIds=[instance])
+      response2 = client2.describe_instances(InstanceIds=[i1])
       for Instances1 in response2['Reservations']:
         for tag in Instances1['Instances']:
           for key1 in tag['Tags']:
             if key1['Key']=="role":
-              for i in running_list1:
-                response3 = client2.describe_instances(InstanceIds=[i])
+              for i2 in running_list1:
+                response3 = client2.describe_instances(InstanceIds=[i2])
                 for instances2 in response3['Reservations']:
                   for tag in instances2['Instances']:
                     for key2 in tag['Tags']:
@@ -73,10 +73,10 @@ for region in regions:
 
       #if role tag having only single instance it will append and deregister
       if count==1:
-         running_list2.append(instance)
+         running_list2.append(i1)
       #if more than one instance having role tag its won't deregister and  it will push log with instance id
       if count>1:
-         logging.info(" script_name: "+str(sys.argv[0])+" Account_id: "+str(account_id)+" region name :" +str(region)+"More the 1 instance is tagged for deregistration for the same role "+str(instance))
+         logging.error(" script_name: "+str(sys.argv[0])+" Account_id: "+str(account_id)+" region name :" +str(region)+"More the 1 instance is tagged for deregistration for the same role "+str(i1))
 
 
 
