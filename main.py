@@ -54,17 +54,17 @@ for region in regions:
           if Initid['InstanceId'] in instance_ids_with_matching_tags:
              running_list1.append(Initid['InstanceId'])
 
-    client2 = boto3.client('ec2',aws_access_key_id=access_key,aws_secret_access_key=secret_access_key,region_name=region)
+    #client2 = boto3.client('ec2',aws_access_key_id=access_key,aws_secret_access_key=secret_access_key,region_name=region)
     #checking whether same role tag having two instances
     for i1 in running_list1:
       count=0
-      response2 = client2.describe_instances(InstanceIds=[i1])
+      response2 = client1.describe_instances(InstanceIds=[i1])
       for Instances1 in response2['Reservations']:
         for tag in Instances1['Instances']:
           for key1 in tag['Tags']:
             if key1['Key']=="role":
               for i2 in running_list1:
-                response3 = client2.describe_instances(InstanceIds=[i2])
+                response3 = client1.describe_instances(InstanceIds=[i2])
                 for instances2 in response3['Reservations']:
                   for tag in instances2['Instances']:
                     for key2 in tag['Tags']:
