@@ -82,7 +82,7 @@ for region in regions:
 
 
 if len(permanent_running_list)==0:
-   logging.info(" "+str(sys.argv[0])+" : "+str(account_id)+" : -:-:- : -:-:- : No matching instances found in this tagging creteria. \ntag name is false.\nThanks ")
+   logging.info(" "+str(sys.argv[0])+" : "+str(account_id)+" : -:-:- : -:-:- :  No matching instances found in this tagging creteria. \ntag name is false.\nThanks")
    logging.debug(" "+str(sys.argv[0])+" : "+str(account_id)+" : -:-:- : -:-:- : please check whether provided instances having proper tags AND unique role tag And make sure instance is in running status ")
    sys.exit(3)
 
@@ -120,11 +120,11 @@ def deregisterforregion(region):
               if  target['Target']['Id'] in permanent_running_list:
                 try:
                   response7 = elb_client.deregister_targets(TargetGroupArn=(str(targetgrouparn['TargetGroupArn'])),Targets=[{'Id': target['Target']['Id'],},],)
-                  response8 = waiter.wait(TargetGroupArn=(str(targetgrouparn['TargetGroupArn'])),Targets=[{'Id': target['Target']['Id'],'Port': 80,},],WaiterConfig={'Delay': 30,'MaxAttempts': 12})
+                  response8 = waiter.wait(TargetGroupArn=(str(targetgrouparn['TargetGroupArn'])),Targets=[{'Id': target['Target']['Id'],},],WaiterConfig={'Delay': 30,'MaxAttempts': 12})
                   logging.warning(" "+str(sys.argv[0])+" : "+str(account_id)+" : " +str(region)+" : instance Id with "+str(target['Target']['Id'])+" is Deregistered from ELB named "+str(loadbalancerarn['LoadBalancerName'])+" in region "+str(region))
                   count=count2-1
                 except:
-                  logging.error(" "+str(sys.argv[0])+" : "+str(account_id)+" : " +str(region)+" : instance Id with "+str(target['Target']['Id'])+" is Not able to  Deregistered from ELB named "+str(loadbalancerarn['LoadBalancerName'])+" in region "+str(region)+" : Time out Try again ")
+                  logging.error(" "+str(sys.argv[0])+" : "+str(account_id)+" : " +str(region)+" : MAXIMUM TIMEOUT  instance Id with "+str(target['Target']['Id'])+" is Not able to  Deregistered from ELB named "+str(loadbalancerarn['LoadBalancerName'])+" in region "+str(region))
 
 
     #from here only multiple threads will create and calls deregisaterforelb function
