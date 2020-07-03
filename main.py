@@ -82,7 +82,7 @@ for region in regions:
 
 
 if len(permanent_running_list)==0:
-   logging.info(" "+str(sys.argv[0])+" : "+str(account_id)+" : -:-:- : -:-:- : Didnt found any Tagmatching and running instaces for deregistering in this account ")
+   logging.info(" "+str(sys.argv[0])+" : "+str(account_id)+" : -:-:- : -:-:- : No matching instances found in this tagging creteria. \ntag name is false.\nThanks ")
    logging.debug(" "+str(sys.argv[0])+" : "+str(account_id)+" : -:-:- : -:-:- : please check whether provided instances having proper tags AND unique role tag And make sure instance is in running status ")
    sys.exit(3)
 
