@@ -6,7 +6,7 @@ import boto3
 import sys
 import logging
 from time import sleep
-from config import *
+from config1 import *
 #log file
 logging.basicConfig(filename='elb.log', level=int(Level),
                     format='%(asctime)s:%(levelname)s:%(message)s',filemode='w')
@@ -46,6 +46,7 @@ for region in regions:
         sys.exit(1)
     client1 = boto3.client('ec2',aws_access_key_id=access_key,aws_secret_access_key=secret_access_key,region_name=region)
     response1 = client1.describe_instances(Filters=ec2_tag_names)
+    logging.info(" "+str(sys.argv[0])+" : "+str(account_id)+" : " +str(region)+" : -:-:- : Trying to filter tagmatching and running instances and appended to temporary_running_list")
     for Instances in response1['Reservations']:
         for Initid in Instances['Instances']:
             instance_ids_with_matching_tags.append(Initid['InstanceId'])
@@ -57,28 +58,40 @@ for region in regions:
 
     #client2 = boto3.client('ec2',aws_access_key_id=access_key,aws_secret_access_key=secret_access_key,region_name=region)
     #checking whether same role tag having two instances
+
+    logging.info(" "+str(sys.argv[0])+" : "+str(account_id)+" : " +str(region)+" : -:-:- : Trying to check whether any two instances having same tag called "+str(Specifictag))
     for i1 in temporary_running_list:
       count=0
+      tag_list=[]
       response3 = client1.describe_instances(InstanceIds=[i1])
+      #print(response3)
       for Instances1 in response3['Reservations']:
         for tag in Instances1['Instances']:
           for key1 in tag['Tags']:
-            if key1['Key']=="role":
+            tag_list.append(key1['Key'])
+            if key1['Key']=="Role":
               for i2 in temporary_running_list:
                 response4 = client1.describe_instances(InstanceIds=[i2])
                 for instances2 in response4['Reservations']:
                   for tag in instances2['Instances']:
                     for key2 in tag['Tags']:
-                      if key2['Key']=="role" and  key1['Value']==key2['Value']:
+                      if key2['Key']=="Role" and  key1['Value']==key2['Value']:
                          count=count+1
+        # here it will check whether instance id having role tag or not
+        if Specifictag not in tag_list:
+            logging.info(" "+str(sys.argv[0])+" : "+str(account_id)+" : " +str(region)+" : "+str(i1)+" : We are not going to do further deregister procees for this instance id beacuse this id not having Tag called "+str(Specifictag))
+
 
       #if role tag having only single instance it will append and deregister
       if count==1:
          permanent_running_list.append(i1)
       #if more than one instance having role tag its won't deregister and  it will push log with instance id
       if count>1:
-         logging.error(" "+str(sys.argv[0])+" : "+str(account_id)+" : "+str(region)+" : "+str(i1)+" : More the 1 instance is tagged for deregistration for the same role with instance_id  "+str(i1))
-         logging.debug(" "+str(sys.argv[0])+" : "+str(account_id)+" : "+str(region)+" : "+str(i1)+" : please put only for one instance tag---deregister:true among the same role Instances ")
+         logging.error(" "+str(sys.argv[0])+" : "+str(account_id)+" : "+str(region)+" : "+str(i1)+" : More the 1 instance is tagged for deregistration process where at the same time both instance having same Specifictag called"+str(Specifictag))
+         logging.debug(" "+str(sys.argv[0])+" : "+str(account_id)+" : "+str(region)+" : "+str(i1)+" : please put only for one instance tag---deregister:true among the same Sapcifictag Instances called "+str(Specifictag))
+
+
+
 
 
 if len(permanent_running_list)==0:
@@ -86,25 +99,28 @@ if len(permanent_running_list)==0:
    logging.debug(" "+str(sys.argv[0])+" : "+str(account_id)+" : -:-:- : -:-:- : please check whether provided instances having proper tags AND unique role tag And make sure instance is in running status ")
    sys.exit(3)
 
-logging.info(" "+str(sys.argv[0])+" : "+str(account_id)+" : -:-:- : -:-:- : Trying to Deregister Instances...")
+logging.info(" "+str(sys.argv[0])+" : "+str(account_id)+" : -:-:- : -:-:- : Filetred all tag matching and running instances In this account and  appended to permanent_running_list and  Trying to Deregister Instances..."+str(permanent_running_list))
 
 
 
 
 # Deregister process
 def deregisterforregion(region):
-    logging.debug(" "+str(sys.argv[0])+" : "+str(account_id)+" : "+str(region)+" : -:-:- : Entred in to region and try to take loadbalncers details ")
+    logging.info(" "+str(sys.argv[0])+" : "+str(account_id)+" : "+str(region)+" : -:-:- : Entred in to region and try to take loadbalncers details ")
     elb_client = boto3.client('elbv2',aws_access_key_id=access_key,aws_secret_access_key=secret_access_key,region_name=region)
+    client2 = boto3.client('ec2',aws_access_key_id=access_key,aws_secret_access_key=secret_access_key,region_name=region)
     waiter = elb_client.get_waiter('target_deregistered')
     elb_response=elb_client.describe_load_balancers()
     inregionallelbs=elb_response['LoadBalancers']
 
     #After creation of thread called threadforloadbancers it will call this deregisterfor elb function
     def deregisterforelb(loadbalancerarn):
-      logging.debug(" "+str(sys.argv[0])+" : "+str(account_id)+" : "+str(region)+" script entred in to loadbalncer "+str(loadbalancerarn['LoadBalancerName'])+" and try to take targetgrouparn")
+      logging.info(" "+str(sys.argv[0])+" : "+str(account_id)+" : "+str(region)+" : -:-:- script entred in to loadbalncer "+str(loadbalancerarn['LoadBalancerName'])+" and try to take targetgrouparn")
+      logging.debug(" "+str(sys.argv[0])+" : "+str(account_id)+" : "+str(region)+" : -:-:- script entred in to loadbalncer "+str(loadbalancerarn['LoadBalancerName'])+" check whether targetgroup is attached with loadbalncer or not")
       #in every elb taking instance id and if id matches with running_list its simply deregister
       elb_list=[]
       count2=0
+      instance_list=[]
       response5 = elb_client.describe_listeners(LoadBalancerArn=(str(loadbalancerarn['LoadBalancerArn'])),)
 
      # From here we are appending all instanceids to list to know how many instances is attached to elb and putting that lenth in count2 variable
@@ -112,20 +128,36 @@ def deregisterforregion(region):
         for targetgrouparn in defaultaction['DefaultActions'] :
           response6 = elb_client.describe_target_health(TargetGroupArn=(str(targetgrouparn['TargetGroupArn'])),)
           for target in response6['TargetHealthDescriptions']:
-            elb_list.append(target['Target']['Id'])
-            count2=len(elb_list)
+            logging.info(" "+str(sys.argv[0])+" : "+str(account_id)+" : "+str(region)+" : -:-:-  script entred in to loadbalncer "+str(loadbalancerarn['LoadBalancerName'])+" and try to take target instance ids from targetgrouparn")
+            if target['TargetHealth']['State']==HealthStatus:
+              elb_list.append(target['Target']['Id'])
+              count2=len(elb_list)
       # From here we are taking one by one instance ids and checking with permanent_running_list deregistering
           for target in response6['TargetHealthDescriptions']:
+            logging.info(" "+str(sys.argv[0])+" : "+str(account_id)+" : "+str(region)+" -:-:- script entred in to loadbalncer called "+str(loadbalancerarn['LoadBalancerName'])+" and took targetgroup instance id and checking whether target-instanceid will be there or not in permanent_running_list")
             if count2>1:
               if  target['Target']['Id'] in permanent_running_list:
+                instance_list.append(target['Target']['Id'])
                 try:
                   response7 = elb_client.deregister_targets(TargetGroupArn=(str(targetgrouparn['TargetGroupArn'])),Targets=[{'Id': target['Target']['Id'],},],)
-                  response8 = waiter.wait(TargetGroupArn=(str(targetgrouparn['TargetGroupArn'])),Targets=[{'Id': target['Target']['Id'],},],WaiterConfig={'Delay': 30,'MaxAttempts': 12})
-                  logging.warning(" "+str(sys.argv[0])+" : "+str(account_id)+" : " +str(region)+" : instance Id with "+str(target['Target']['Id'])+" is Deregistered from ELB named "+str(loadbalancerarn['LoadBalancerName'])+" in region "+str(region))
+                  logging.info(" "+str(sys.argv[0])+" : "+str(account_id)+" : "+str(region)+" : "+str(target['Target']['Id'])+" :  Deregistering procees is going on  from ELB named "+str(loadbalancerarn['LoadBalancerName'])+" for  every "+str(Instance_Deregistration_checkingtime)+"secs script will monitor. and total maximum attempts will be"+str(Maxattempts)+"please wait")
+                  response8 = waiter.wait(TargetGroupArn=(str(targetgrouparn['TargetGroupArn'])),Targets=[{'Id': target['Target']['Id'],},],WaiterConfig={'Delay': int(Instance_Deregistration_checkingtime),'MaxAttempts': int(Maxattempts)})
+                  logging.info(" "+str(sys.argv[0])+" : "+str(account_id)+" : "+str(region)+" : "+str(target['Target']['Id'])+" This is successfully Deregistered from ELB named "+str(loadbalancerarn['LoadBalancerName']))
                   count=count2-1
-                except:
-                  logging.error(" "+str(sys.argv[0])+" : "+str(account_id)+" : " +str(region)+" : MAXIMUM TIMEOUT  instance Id with "+str(target['Target']['Id'])+" is Not able to  Deregistered from ELB named "+str(loadbalancerarn['LoadBalancerName'])+" in region "+str(region))
+                  response9 = client2.create_tags(Resources=[target['Target']['Id']],Tags = [{'Key': AfterderegisterChangingKey,'Value': AfterderegisterChangingValue}])
+                  logging.info(" "+str(sys.argv[0])+" : "+str(account_id)+" : "+str(region)+" : "+str(target['Target']['Id'])+" : After deregistering Instance the tag name is changed as "+str(AfterderegisterChangingKey)+":"+str(AfterderegisterChangingValue))
 
+
+                except:
+                  logging.error(" "+str(sys.argv[0])+" : "+str(account_id)+" : " +str(region)+" : MAXIMUM TIMEOUT  instance Id with "+str(target['Target']['Id'])+" is Not able to  Deregistered from ELB named "+str(loadbalancerarn['LoadBalancerName']))
+            else:
+              logging.info(" "+str(sys.argv[0])+" : "+str(account_id)+" : " +str(region)+" : -:-:- : Loadbalancer called "+str(loadbalancerarn['LoadBalancerName'])+" having only one healthy instance so we are not deregistering any instances from this loadbalncer")
+              logging.debug(" "+str(sys.argv[0])+" : "+str(account_id)+" : " +str(region)+" : -:-:- "+str(loadbalancerarn['LoadBalancerName'])+" please check whether loadbalncer having only one instance or not")
+
+
+
+      if len(instance_list)==0:
+        logging.info(" "+str(sys.argv[0])+" : "+str(account_id)+" : "+str(region)+" -:-:- : Nothing to Deregister in Loadbalancer named as  "+str(loadbalancerarn['LoadBalancerName']))
 
     #from here only multiple threads will create and calls deregisaterforelb function
     for loadbalancerarn in inregionallelbs:
@@ -133,7 +165,3 @@ def deregisterforregion(region):
 #from here only multiple threads will create and calls deregisaterforregion function
 for region in regions:
     threadsforregion = threading.Thread(target = deregisterforregion, args=(region,)).start()
-
-# if tag instances not in elb or already deregister
-if len(instance_list)==0:
-  logging.info(" "+str(sys.argv[0])+" : "+str(account_id)+": -:-:- : -:-:- : Nothing to Deregister.\nThanks.")
