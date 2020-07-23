@@ -1,5 +1,5 @@
-access_key="KIARMDSSSFUU2AVMHU5"
-secret_access_key="2NCYHm4vEyCUXdzgrAOW/Qz3TCL3bgZdxCm45Dn"
+access_key="AGGBT47I"
+secret_access_key="UieM/9NQBHHt"
 Account_Id="094729572713"
 Account_Name="punya2000"
 regions=["ap-south-1","us-east-1"]
