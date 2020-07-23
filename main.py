@@ -7,10 +7,11 @@ import sys
 import logging
 from time import sleep
 from config1 import *
+from datetime import datetime,timedelta,date
 #log file
-logging.basicConfig(filename='elb.log', level=int(Level),
+TODAY_DATE_FULL=datetime.now().strftime("%Y-%m-%d_%H:%M:%S")
+logging.basicConfig(filename='elb_deregister'+str(TODAY_DATE_FULL)+'.log', level=int(Level),
                     format='%(asctime)s:%(levelname)s:%(message)s',filemode='w')
-
 
 #Credentials Validation
 sts = boto3.client('sts',aws_access_key_id=access_key,aws_secret_access_key=secret_access_key,region_name=default_region)
