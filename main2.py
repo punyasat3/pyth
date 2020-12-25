@@ -114,7 +114,6 @@ for region in regions:
       for Instances1 in response3['Reservations']:
         for tag in Instances1['Instances']:
           for key1 in tag['Tags']:
-            print(key1)
             tag_list.append(key1['Key'])
             if key1['Key']=="Role":
               for i2 in temporary_running_list:
@@ -122,12 +121,8 @@ for region in regions:
                 for instances2 in response4['Reservations']:
                   for tag in instances2['Instances']:
                     for key2 in tag['Tags']:
-                      if key2['Key']=="Role" :
-                         if (key1['Value']==key2['Value'] or key2['Value'] in  key1['Value'].split(',') or key1['Value'] in  key2['Value'].split(',') ):
-                           count=count+1
-            if key1['Key']=="Name": 
-                 Instance_name = key1['Value']
-                 
+                      if key2['Key']=="Role" and  key1['Value']==key2['Value']:
+                         count=count+1
         # here it will check whether instance id having role tag or not
         if Specifictag not in tag_list:
             logging.info(" "+str(sys.argv[0])+" : "+str(Account_Id)+" : " +str(region)+" : "+str(i1)+" : -:-:- : We are not going to do further deregister procees for this instance id beacuse this id not having Tag called "+str(Specifictag))
@@ -138,12 +133,6 @@ for region in regions:
          permanent_running_list.append(i1)
       #if more than one instance having role tag its won't deregister and  it will push log with instance id
       if count>1:
-         #Slack Notification
-         attachments = []
-         attachment = {"fields": [{"color": "#36a64f"}],"text":  " ```ACCOUNT_ID : "+str(Account_Id)+"\nACCOUNT_NAME : "+str(Account_Name)+"\nREGION_NAME : "+str(region)+"\nINSTANCE_ID : "+str(i1)+"\nINSTANCE_NAME : "+str(Instance_name)+"\nMESSAGE :  More the 1 instance is tagged for deregistration process where at the same time both instance having same Specifictag called "+str(Specifictag)+" ``` "}
-         attachments.append(attachment)
-         slack_notify("DREGISTER INSTANCE DETAILS ","#devops-internal", attachments, "error")
-
          logging.error(" "+str(sys.argv[0])+" : "+str(Account_Id)+" : "+str(region)+" : "+str(i1)+" : -:-:- : More the 1 instance is tagged for deregistration process where at the same time both instance having same Specifictag called"+str(Specifictag))
          logging.debug(" "+str(sys.argv[0])+" : "+str(Account_Id)+" : "+str(region)+" : "+str(i1)+" : -:-:- : please put only for one instance tag---deregister:true among the same Sapcifictag Instances called "+str(Specifictag))
 
