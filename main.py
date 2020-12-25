@@ -12,7 +12,7 @@ from config import *
 #log file
 import slackweb
 
-slack = slackweb.Slack(url="https://hooks.slack.")
+slack = slackweb.Slack(url=""https://hooks.slack.com/services/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"")
 def slack_notify(script_title,channel_name,attachments,severity):
         if (severity =="info"):
                 color = "#439FE0"
