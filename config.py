@@ -1,5 +1,5 @@
-access_key="AKIARRYJIH7ONO2TPA66"
-secret_access_key="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"
+access_key="gshsh"
+secret_access_key="gsg"
 Account_Id="106856726492"
 Account_Name="punya2000"
 regions=["ap-south-1","eu-west-2"]
